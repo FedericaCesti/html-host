@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Crete Trip — Aug 3–12</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root { --sand:#F5EFE6; --sea:#1B6B93; --terracotta:#C7693D; --olive:#5B7553; --stone:#3D3B3A; --white:#FAFAF8; --light-blue:#E8F1F5; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:var(--sand); color:var(--stone); line-height:1.65; font-size:15px; }
+  .header { background:var(--sea); color:var(--white); padding:48px 24px 40px; text-align:center; }
+  .header h1 { font-family:'DM Serif Display',serif; font-size:2.4rem; font-weight:400; letter-spacing:.02em; margin-bottom:8px; }
+  .header p { font-size:1rem; opacity:.85; }
+  .overview { max-width:720px; margin:0 auto; padding:32px 24px 16px; }
+  .overview-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .overview-card { background:var(--white); border-radius:8px; padding:16px; border-left:3px solid var(--sea); }
+  .overview-card .label { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--sea); font-weight:600; }
+  .overview-card .value { font-size:.95rem; margin-top:4px; font-weight:500; }
+  .container { max-width:720px; margin:0 auto; padding:0 24px 48px; }
+  #map-container { max-width:720px; margin:0 auto; padding:0 24px; }
+  #map { width:100%; height:420px; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.1); margin-top:8px; }
+  .leaflet-popup-content-wrapper { border-radius:8px!important; font-family:'Inter',sans-serif!important; }
+  .leaflet-popup-content { margin:10px 14px!important; font-size:13px!important; line-height:1.5!important; }
+  .popup-day { font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; font-weight:600; margin-bottom:2px; }
+  .popup-name { font-weight:600; font-size:14px; margin-bottom:3px; }
+  .popup-note { color:#666; font-size:12px; }
+  @media(max-width:600px){ #map { height:320px; } }
+  .map-legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; margin-bottom:8px; }
+  .legend-item { display:flex; align-items:center; gap:5px; font-size:.72rem; font-weight:500; color:#666; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .day { margin-top:36px; background:var(--white); border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .day-header { padding:20px 24px 16px; display:flex; align-items:baseline; gap:12px; border-bottom:1px solid #eee; }
+  .day-num { font-family:'DM Serif Display',serif; font-size:1.6rem; color:var(--sea); line-height:1; }
+  .day-title { font-weight:600; font-size:1.05rem; }
+  .day-date { font-size:.78rem; color:#888; margin-left:auto; white-space:nowrap; }
+  .day-body { padding:20px 24px 24px; }
+  .day-body p { margin-bottom:12px; }
+  .tag { display:inline-block; font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; font-weight:600; padding:3px 8px; border-radius:4px; margin-right:6px; margin-bottom:6px; }
+  .tag-beach { background:#dbeefe; color:#1565a0; } .tag-food { background:#fde8d8; color:#a04e1c; }
+  .tag-culture { background:#e4dff0; color:#5b3e8a; } .tag-drive { background:#e0eed9; color:#3d6330; }
+  .tag-shop { background:#f0e6f6; color:#6b3a8a; } .tag-sunset { background:#fce4ec; color:#c0392b; }
+  .tl { padding-left:20px; border-left:2px solid #ddd; margin-bottom:16px; position:relative; }
+  .tl::before { content:''; position:absolute; left:-5px; top:6px; width:8px; height:8px; border-radius:50%; background:var(--sea); }
+  .tl .t { font-size:.78rem; font-weight:600; color:var(--terracotta); text-transform:uppercase; letter-spacing:.04em; }
+  .tl .d { margin-top:4px; }
+  .restaurant-list { margin-top:8px; }
+  .restaurant { background:var(--sand); padding:12px 16px; border-radius:6px; margin-bottom:8px; }
+  .restaurant .name { font-weight:600; color:var(--terracotta); }
+  .rsvp { display:inline-block; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:3px; margin-left:8px; vertical-align:middle; }
+  .rsvp-yes { background:#fde8d8; color:#a04e1c; } .rsvp-optional { background:#e0eed9; color:#3d6330; }
+  .restaurant .note { font-size:.88rem; color:#666; margin-top:2px; }
+  .callout { background:var(--light-blue); border-left:3px solid var(--sea); padding:14px 18px; border-radius:0 6px 6px 0; margin:16px 0; font-size:.92rem; }
+  .callout-warn { background:#fff8e6; border-left-color:var(--terracotta); }
+  .section-title { font-family:'DM Serif Display',serif; font-size:1.5rem; color:var(--sea); margin-top:40px; margin-bottom:16px; }
+  .distances { width:100%; border-collapse:collapse; font-size:.88rem; margin:12px 0; }
+  .distances th { text-align:left; padding:8px 12px; background:var(--sea); color:white; font-weight:500; }
+  .distances td { padding:8px 12px; border-bottom:1px solid #eee; }
+  .distances tr:nth-child(even) td { background:#fafafa; }
+  @media(max-width:600px){ .overview-grid{grid-template-columns:1fr} .day-header{flex-wrap:wrap} .day-date{margin-left:0} .header h1{font-size:1.8rem} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Crete — August 3–12</h1>
+  <p>Chania · Heraklion · Rethymno &nbsp;|&nbsp; 10 days by car</p>
+</div>
+
+<div class="overview">
+  <div class="overview-grid">
+    <div class="overview-card"><div class="label">Base 1</div><div class="value">Chania — Aug 3 → 8</div></div>
+    <div class="overview-card"><div class="label">Base 2</div><div class="value">Rethymno — Aug 8 → 12</div></div>
+    <div class="overview-card"><div class="label">Flights</div><div class="value">In/out Heraklion (HER)</div></div>
+    <div class="overview-card"><div class="label">Note</div><div class="value">Airport pickup Aug 5</div></div>
+  </div>
+</div>
+
+<!-- ============ MAP ============ -->
+<div id="map-container">
+  <h2 class="section-title" style="margin-top:24px">Trip Map</h2>
+  <div class="map-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#D35444"></div>Day 1</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D98032"></div>Day 2</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#C4A832"></div>Day 3</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#27AE60"></div>Day 4</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#17A88A"></div>Day 5</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2E86C1"></div>Day 6</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8E5DB5"></div>Day 7</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7D3C98"></div>Day 8</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3D566E"></div>Day 9</div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<div class="container">
+
+  <h2 class="section-title">Key Distances</h2>
+  <table class="distances">
+    <tr><th>Route</th><th>Drive</th></tr>
+    <tr><td>Heraklion Airport → Chania</td><td>~2 h</td></tr>
+    <tr><td>Chania → Rethymno</td><td>~45 min</td></tr>
+    <tr><td>Rethymno → Heraklion Airport</td><td>~1 h 15 min</td></tr>
+    <tr><td>Chania → Elafonisi Beach</td><td>~1 h 20 min</td></tr>
+    <tr><td>Chania → Balos (Kissamos)</td><td>~1 h</td></tr>
+    <tr><td>Chania → Falasarna Beach</td><td>~55 min</td></tr>
+    <tr><td>Rethymno → Preveli Beach</td><td>~50 min</td></tr>
+    <tr><td>Rethymno → Triopetra Beach</td><td>~1 h 10 min</td></tr>
+    <tr><td>Rethymno → Arkadi Monastery</td><td>~25 min</td></tr>
+  </table>
+
+  <!-- ======== DAY 1 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">01</span><span class="day-title">Arrival, Jumbo & Chania Old Town</span><span class="day-date">Mon Aug 3</span></div>
+    <div class="day-body">
+      <span class="tag tag-drive">2h drive</span><span class="tag tag-shop">jumbo stop</span><span class="tag tag-food">dinner</span>
+      <div class="tl" style="margin-top:16px"><div class="t">Arrival</div><div class="d">Land at Heraklion and pick up the rental car.</div></div>
+      <div class="tl"><div class="t">Jumbo — Heraklion</div><div class="d">Stop at <strong>Jumbo on 62 Martyron Avenue</strong> — on your route west, no detour. Open Mon–Sat 9–21. Beach umbrella, sunscreen, water supplies, snorkeling gear.</div></div>
+      <div class="tl"><div class="t">Drive West</div><div class="d">Highway to Chania (~2 hours). Scenic north-coast drive with mountain views.</div></div>
+      <div class="tl"><div class="t">Late Afternoon</div><div class="d">Check in and walk <strong>Chania's Venetian Harbor</strong> — the Egyptian Lighthouse, colorful waterfront, then into the Old Town lanes. Zambeliou and Theotokopoulou streets are the most atmospheric.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>Tamam</strong> — your favourite. Cozy Old Town alley, Persian-Greek fusion, complimentary baklava. Book ahead.</div></div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 2 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">02</span><span class="day-title">Seitan Limania & Chania</span><span class="day-date">Tue Aug 4</span></div>
+    <div class="day-body">
+      <span class="tag tag-beach">hidden cove</span><span class="tag tag-food">seafood dinner</span><span class="tag tag-culture">old town</span>
+      <p>Lighter day — save the big west-coast drives for when your friend arrives.</p>
+      <div class="tl" style="margin-top:12px"><div class="t">Morning</div><div class="d">Drive 20 min to <strong>Seitan Limania</strong> on the Akrotiri Peninsula. Dramatic turquoise cove between steep cliffs. Steep 15–20 min hike down — proper shoes, go before 9 AM. Small beach, arrives early or it's packed.</div></div>
+      <div class="tl"><div class="t">Afternoon</div><div class="d">Back to Chania. Explore the <strong>Agora (Municipal Market)</strong>, leather shops on Stivanadika street, the <strong>Mosque of the Janissaries</strong>. Lunch at <strong>Kapari</strong> — classic taverna, generous daily specials, great value. Walk-in fine.</div></div>
+      <div class="tl"><div class="t">Sunset</div><div class="d">Drinks at <strong>Pallas</strong> rooftop — best sunset-over-harbor view in Chania.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>Thalassino Ageri</strong> — from your list! Right on the water at the edge of the Old Town. One of the best seafood tavernas in Crete, famous for fresh fish and sea views. Book ahead.</div></div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 3 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">03</span><span class="day-title">Knossos Palace & Airport Pickup</span><span class="day-date">Wed Aug 5</span></div>
+    <div class="day-body">
+      <span class="tag tag-culture">knossos</span><span class="tag tag-drive">2h to heraklion</span><span class="tag tag-culture">museum</span>
+      <div class="callout" style="margin-bottom:16px"><strong>Timing:</strong> Flight lands ~12:00. No early alarm needed — leave Chania ~10 AM, pick up your friend, then do Knossos and the museum together in the afternoon.</div>
+      <div class="tl"><div class="t">10:00 AM — Depart Chania</div><div class="d">Relaxed morning. Coffee in the Old Town, then hit the highway east (~2 hours to Heraklion).</div></div>
+      <div class="tl"><div class="t">~12:00 — Airport Pickup</div><div class="d">Collect your friend at Heraklion Airport. The airport is small and easy to navigate.</div></div>
+      <div class="tl"><div class="t">12:30 PM — Lunch in Heraklion</div><div class="d">First meal together. Head to <strong>Lions Square</strong> or the <strong>1866 Market Street</strong> for a proper Cretan lunch. Don't skip bougatsa (custard pastry) — Heraklion's signature.</div></div>
+      <div class="tl"><div class="t">2:30 PM — Archaeological Museum</div><div class="d">Start indoors where there's air conditioning. The original Minoan frescoes (Bull Leaper, Ladies in Blue) are here, not at the palace. Combo ticket available. ~1 hour. Seeing this first makes the palace visit much richer.</div></div>
+      <div class="tl"><div class="t">4:00 PM — Knossos Palace</div><div class="d">Only 10 min drive from the museum. By 4 PM the worst heat has passed and the big tour groups have left — this is actually the best time to visit. Book a 4 PM timed entry slot. Budget 1.5 hours. Still bring hat and water.</div></div>
+      <div class="tl"><div class="t">~6:00 PM — Drive Back</div><div class="d">Drive back to Chania (~2h). Quick coffee stop at the <strong>Rethymno Venetian Harbor</strong> if you feel like stretching your legs — you'll be staying there later in the trip.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>Fourogatos</strong> — waterfront Cretan cuisine, homemade feta, seafood saganaki. Perfect "welcome to Crete" dinner. Book ahead.</div></div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 4 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">04</span><span class="day-title">Elafonisi Beach</span><span class="day-date">Thu Aug 6</span></div>
+    <div class="day-body">
+      <span class="tag tag-beach">pink sand</span><span class="tag tag-drive">1h 20m each way</span>
+      <p>Your friend's first full day — taking them to one of Europe's most beautiful beaches.</p>
+      <div class="tl" style="margin-top:12px"><div class="t">7:30 AM — Depart</div><div class="d">Drive through <strong>Topolia Gorge</strong>. Stop at the <strong>Agia Sophia cave church</strong> (short walk up steps). Optional detour: the <strong>Botanical Garden of Crete</strong> is near the road to Omalos if you want a morning break (opens 9 AM).</div></div>
+      <div class="tl"><div class="t">9:00 AM — Elafonisi</div><div class="d">Wade across the shallow lagoon to the island side for quieter pink-sand stretches. West side of the island is usually less crowded. Warm, shallow, Caribbean-like water. Sunbeds available but bring your own supplies too.</div></div>
+      <div class="tl"><div class="t">Optional — Kedrodasos</div><div class="d"><strong>Kedrodasos Beach</strong> is a 5-min detour on the way back — wild, undeveloped, backed by juniper trees, great snorkeling. No facilities at all.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>Astrea Garden</strong> — creative Greek-fusion small plates in a romantic garden setting, excellent wine pairings. Book ahead.</div></div>
+      <div class="callout callout-warn"><strong>August:</strong> Arrive by 9 AM. Parking fills and the beach gets very crowded by 11.</div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 5 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">05</span><span class="day-title">Balos Lagoon & Falasarna Sunset</span><span class="day-date">Fri Aug 7</span></div>
+    <div class="day-body">
+      <span class="tag tag-beach">iconic lagoon</span><span class="tag tag-sunset">sunset</span><span class="tag tag-drive">1h west</span>
+      <div class="tl" style="margin-top:12px"><div class="t">7:00 AM — Balos</div><div class="d">Drive to Kissamos (~1h). <strong>Option A — Drive + Hike:</strong> Continue to Balos parking (rough dirt road, ~30 min). Hike down ~20 min. Bring lots of water. <strong>Option B — Boat:</strong> Morning boat from Kissamos port (~10:30, returns ~18:00), stops at <strong>Gramvousa Island</strong> fortress + Balos.</div></div>
+      <div class="tl"><div class="t">Lunch</div><div class="d"><strong>Thymari Tavern</strong> (from your list) or <strong>Taverna Spilios</strong> — both near Falasarna, traditional Cretan tavernas with honest home cooking. Gramboussa Restaurant near Kissamos is another option on the way.</div></div>
+      <div class="tl"><div class="t">Afternoon — Falasarna</div><div class="d"><strong>Falasarna Beach</strong> — wide golden sand, beach bars. Stay for the sunset — Falasarna is famous across Crete for having the best one. The sky goes orange-to-pink across the open western sea.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>Canale</strong> on the harbor — upscale Mediterranean, cocktails, DJ vibes. Or <strong>Carte Postale</strong> (from your list) for a more intimate Chania dinner.</div></div>
+      <div class="callout callout-warn"><strong>Balos by car:</strong> Dirt road is bumpy. Park early. Hike is exposed and hot — go before 9 AM.</div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 6 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">06</span><span class="day-title">Chania → Rethymno via Lake Kournas</span><span class="day-date">Sat Aug 8</span></div>
+    <div class="day-body">
+      <span class="tag tag-drive">move day</span><span class="tag tag-beach">freshwater lake</span><span class="tag tag-culture">old town</span>
+      <div class="tl" style="margin-top:12px"><div class="t">Morning</div><div class="d">Sleep in. Breakfast at <strong>Pallas</strong> rooftop. Last Chania swim at <strong>Nea Chora Beach</strong> (10 min walk, fish tavernas around it).</div></div>
+      <div class="tl"><div class="t">Midday — Lake Kournas</div><div class="d">Check out, drive toward Rethymno. Detour to <strong>Lake Kournas</strong> — Crete's only freshwater lake, set below mountains. Pedal boats, swimming, look for turtles. Stop at <strong>Visalo Ceramics & Cafe</strong> (from your list) nearby — handmade pottery and good coffee in a garden setting.</div></div>
+      <div class="tl"><div class="t">Afternoon</div><div class="d">Check in to Rethymno. Walk the <strong>Old Town</strong> — Venetian and Ottoman lanes, the <strong>Rimondi Fountain</strong>, tiny shops. Smaller and quieter than Chania but equally charming.</div></div>
+      <div class="tl"><div class="t">Sunset</div><div class="d">Walk the <strong>Fortezza</strong> — massive Venetian fortress on the headland, panoramic views. €5 entry. Stunning at golden hour.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>Avli</strong> (from your list) — upscale Cretan restaurant in a Venetian courtyard with a renowned wine cellar. Book ahead.</div></div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 7 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">07</span><span class="day-title">Preveli Beach & Kourtaliotiko Gorge</span><span class="day-date">Sun Aug 9</span></div>
+    <div class="day-body">
+      <span class="tag tag-beach">palm beach</span><span class="tag tag-culture">gorge</span><span class="tag tag-drive">50 min south</span>
+      <div class="tl" style="margin-top:12px"><div class="t">Morning</div><div class="d">Drive south through the <strong>Kourtaliotiko Gorge</strong> (from your list) — stop at viewpoints to look down the towering canyon walls. Griffon vultures nest here.</div></div>
+      <div class="tl"><div class="t">Mid-morning</div><div class="d"><strong>Preveli Beach</strong> — park above, hike down 20–30 min (steep!). A palm-lined river meets the Libyan Sea. Swim in both the warm sea and cool river mouth. No facilities — bring food and water.</div></div>
+      <div class="tl"><div class="t">Afternoon</div><div class="d">Stop at <strong>Kato Moni Preveli</strong> (from your list) — the lower Preveli Monastery, beautifully perched with sea views. Then optionally swing through <strong>Plakias</strong> for a late swim and a fish taverna on the sand.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>Prima Plora</strong> (from your list) — organic restaurant and wine bar right on the water in Rethymno. Cretan ingredients, local wines, sunset terrace. Book ahead.</div></div>
+      <div class="callout callout-warn"><strong>Preveli hike:</strong> Walk back up is steep and hot. Wear good shoes, bring more water than you think.</div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 8 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">08</span><span class="day-title">Triopetra & Agios Pavlos Sandhills</span><span class="day-date">Mon Aug 10</span></div>
+    <div class="day-body">
+      <span class="tag tag-beach">south coast gems</span><span class="tag tag-sunset">sunset spot</span><span class="tag tag-drive">1h 10m south</span>
+      <p>The south coast's hidden treasures — both from your saved list. Far less crowded than the famous beaches, and wilder.</p>
+      <div class="tl" style="margin-top:12px"><div class="t">Morning</div><div class="d">Drive south to <strong>Triopetra Beach</strong> (~1h 10min from Rethymno). Named after three dramatic rock formations jutting out of the sea. Two stretches of sand: the western "Big Triopetra" is more open, the eastern side is sheltered and quieter. Turquoise water, barely any tourists compared to the north coast.</div></div>
+      <div class="tl"><div class="t">Midday</div><div class="d">Drive 15 min east to <strong>Agios Pavlos Sandhills</strong> (from your list) — surreal sand dunes tumbling down to the Libyan Sea. Feels like another planet. Great for photos and swimming. Very little shade, so use your Jumbo umbrella.</div></div>
+      <div class="tl"><div class="t">Lunch</div><div class="d">Simple fish taverna in Agios Pavlos village or back at Triopetra — both have a couple of honest beachfront spots.</div></div>
+      <div class="tl"><div class="t">Dinner</div><div class="d"><strong>The Olive, Wine & Cook House</strong> (from your list) — creative Cretan-Mediterranean in Rethymno Old Town. Or <strong>To Pigadi</strong> (from your list) — hidden courtyard restaurant, traditional Cretan menu.</div></div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 9 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">09</span><span class="day-title">Arkadi, Episkopi Beach & Farewell</span><span class="day-date">Tue Aug 11</span></div>
+    <div class="day-body">
+      <span class="tag tag-culture">monastery</span><span class="tag tag-beach">easy beach</span><span class="tag tag-food">farewell dinner</span>
+      <p>Last full day. Mix culture and relaxation.</p>
+      <div class="tl" style="margin-top:12px"><div class="t">Morning</div><div class="d"><strong>Arkadi Monastery</strong> (~25 min from Rethymno). Crete's most significant monastery — central to the 1866 rebellion. Venetian Baroque facade, small museum. €4 entry, about 1 hour. Continue to <strong>Margarites</strong> village (10 min) — pottery workshops, handmade ceramics.</div></div>
+      <div class="tl"><div class="t">Afternoon</div><div class="d">Head to <strong>Episkopi Beach</strong> (from your list) — 15 min west of Rethymno. Long golden sand, shallow water, mountain backdrop, far fewer crowds than the town beach. Perfect low-key last afternoon.</div></div>
+      <div class="tl"><div class="t">Shopping</div><div class="d">Olive oil, local honey, raki, herbs, Cretan cheese — Ethnikis Antistaseos street in Old Town has good selections.</div></div>
+      <div class="tl"><div class="t">Sunset</div><div class="d"><strong>Fortezza</strong> again, or drinks at <strong>Mikro Cafe</strong> (from your list) in the Old Town.</div></div>
+      <div class="tl"><div class="t">Farewell Dinner</div><div class="d"><strong>Sella Vineria</strong> (from your list) — wine-focused, intimate, creative small plates. Or <strong>Asikiko</strong> (from your list) — well-regarded modern Cretan in the Old Town. Either is a great send-off.</div></div>
+    </div>
+  </div>
+
+  <!-- ======== DAY 10 ======== -->
+  <div class="day">
+    <div class="day-header"><span class="day-num">10</span><span class="day-title">Departure</span><span class="day-date">Wed Aug 12</span></div>
+    <div class="day-body">
+      <span class="tag tag-drive">1h 15m to airport</span>
+      <div class="tl" style="margin-top:12px"><div class="t">Morning</div><div class="d">Check out. Drive to Heraklion Airport (~1h 15min). Allow 2.5 hours before your flight for car return and airport.</div></div>
+      <div class="tl"><div class="t">If your flight is late</div><div class="d">Stop in Heraklion for a final coffee and bougatsa. Koules Fortress at the old harbor is worth a quick look — 5 km from the airport.</div></div>
+    </div>
+  </div>
+
+  <!-- ======== RESTAURANT GUIDE — CHANIA ======== -->
+  <h2 class="section-title">Restaurant Guide — Chania</h2>
+  <p>5 evenings (Aug 3–7). Mix of your saved picks and the originals.</p>
+  <div class="restaurant-list">
+    <div class="restaurant"><div class="name">Tamam ⭐ <span class="rsvp rsvp-yes">Book ahead</span></div><div class="note"><strong>Night 1 (Aug 3).</strong> Your #1 — Persian-Greek fusion, cozy Old Town alley. Complimentary baklava.</div></div>
+    <div class="restaurant"><div class="name">Thalassino Ageri 🆕 <span class="rsvp rsvp-yes">Book ahead</span></div><div class="note"><strong>Night 2 (Aug 4).</strong> From your list. Waterfront seafood taverna at the edge of the Old Town — one of the best in Crete for fresh fish.</div></div>
+    <div class="restaurant"><div class="name">Fourogatos <span class="rsvp rsvp-yes">Book ahead</span></div><div class="note"><strong>Night 3 (Aug 5).</strong> Welcome dinner for your friend. Waterfront Cretan cuisine, homemade feta, seafood saganaki.</div></div>
+    <div class="restaurant"><div class="name">Astrea Garden <span class="rsvp rsvp-yes">Book ahead</span></div><div class="note"><strong>Night 4 (Aug 6).</strong> Creative small plates, romantic garden, wine pairings.</div></div>
+    <div class="restaurant"><div class="name">Canale <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note"><strong>Night 5 (Aug 7).</strong> Upscale harbor-front, cocktails, DJ vibes. Reserve for waterfront table.</div></div>
+    <div class="restaurant"><div class="name">Carte Postale 🆕 <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note">From your list. Alternative for any evening — lovely spot in Chania.</div></div>
+    <div class="restaurant"><div class="name">Pallas <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note">Best for breakfast or sunset drinks. Rooftop harbor views.</div></div>
+    <div class="restaurant"><div class="name">Kapari <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note">Lunch spot. Classic taverna, daily specials, great value.</div></div>
+  </div>
+  <p style="margin-top:12px"><strong>Day-trip lunches (west coast):</strong> Thymari Tavern and Taverna Spilios near Falasarna, Gramboussa Restaurant near Kissamos — all from your list. Taverna Stomio on the Elafonisi road.</p>
+
+  <!-- ======== RESTAURANT GUIDE — RETHYMNO ======== -->
+  <h2 class="section-title">Restaurant Guide — Rethymno</h2>
+  <p>4 evenings (Aug 8–11). Almost entirely from your saved list — great taste.</p>
+  <div class="restaurant-list">
+    <div class="restaurant"><div class="name">Avli 🆕 <span class="rsvp rsvp-yes">Book ahead</span></div><div class="note"><strong>Night 6 (Aug 8).</strong> From your list. Upscale Cretan in a Venetian courtyard. Renowned wine cellar, tasting menus.</div></div>
+    <div class="restaurant"><div class="name">Prima Plora 🆕 <span class="rsvp rsvp-yes">Book ahead</span></div><div class="note"><strong>Night 7 (Aug 9).</strong> From your list. Organic restaurant & wine bar on the waterfront. Local ingredients, sunset terrace.</div></div>
+    <div class="restaurant"><div class="name">The Olive, Wine & Cook House 🆕 <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note"><strong>Night 8 (Aug 10).</strong> From your list. Cretan-Mediterranean, Old Town.</div></div>
+    <div class="restaurant"><div class="name">Sella Vineria 🆕 <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note"><strong>Night 9 (Aug 11).</strong> From your list. Wine-focused, intimate, creative plates. Great farewell dinner.</div></div>
+    <div class="restaurant"><div class="name">To Pigadi 🆕 <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note">From your list. Hidden courtyard, traditional Cretan. Swap in for any night.</div></div>
+    <div class="restaurant"><div class="name">Asikiko 🆕 <span class="rsvp rsvp-optional">Walk-in OK</span></div><div class="note">From your list. Modern Cretan, Old Town. Another strong option.</div></div>
+    <div class="restaurant"><div class="name">Hasika 🆕</div><div class="note">From your list. For a casual meal.</div></div>
+    <div class="restaurant"><div class="name">Mikro Cafe 🆕</div><div class="note">From your list. Perfect for morning coffee or afternoon drinks.</div></div>
+  </div>
+
+  <!-- ======== TIPS ======== -->
+  <h2 class="section-title">Practical Tips</h2>
+  <div class="callout"><strong>Knossos tickets:</strong> Book timed entry online now. €20 adult, combo with the Archaeological Museum available. Free for EU citizens under 25.</div>
+  <div class="callout"><strong>August heat:</strong> 30–35°C daily. Beach hikes (Balos, Preveli, Seitan Limania) are all exposed and steep. Go early, 2+ liters of water per person, hat, real shoes.</div>
+  <div class="callout"><strong>Gas stations:</strong> Most close by 7 PM. Highway stations stay open later. Keep the tank half full heading to remote western/southern beaches.</div>
+  <div class="callout"><strong>Beaches — what to bring:</strong> Buy a beach umbrella at Jumbo (~€15). Sunbed rental at organized beaches is €8–12 for a pair. Triopetra, Agios Pavlos, and Kedrodasos have no facilities — bring everything.</div>
+  <div class="callout"><strong>South coast beaches:</strong> The Libyan Sea side is noticeably less windy than the north coast in August. Water is a touch warmer too. Triopetra and Agios Pavlos are far less crowded than Elafonisi or Balos.</div>
+  <div class="callout"><strong>Rethymno sea turtles:</strong> Beaches east of Rethymno are loggerhead turtle nesting grounds (May–Sep). Don't disturb cordoned nests; avoid beach flashlights at night.</div>
+  <div class="callout"><strong>Your saved picks I skipped:</strong> Gavdos (full-day ferry commitment), Samaria Gorge (full-day hike, logistics complex with one car), Matala/Red Beach/Kommos (reachable but ~2h from Rethymno — doable as a swap for the Triopetra day if you prefer). Loutro (boat-access village from Hora Sfakion — beautiful but adds a long day). All worth it on a longer trip.</div>
+
+  <p style="margin-top:32px; text-align:center; color:#999; font-size:.82rem;">Built for you — July 2026. Have an amazing trip! 🏖️</p>
+</div>
+
+<script>
+(function(){
+  var map = L.map('map',{
+    scrollWheelZoom:false,
+    tap:true,
+    dragging:true,
+    touchZoom:true,
+    bounceAtZoomLimits:false
+  }).setView([35.32,24.35],9);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    maxZoom:17
+  }).addTo(map);
+
+  var colors=['#D35444','#D98032','#C4A832','#27AE60','#17A88A','#2E86C1','#8E5DB5','#7D3C98','#3D566E','#7F8C8D'];
+
+  function pin(color){
+    return L.divIcon({
+      className:'',
+      html:'<div style="width:15px;height:15px;border-radius:50%;background:'+color+';border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,.35);"></div>',
+      iconSize:[15,15],iconAnchor:[7,7],popupAnchor:[0,-10]
+    });
+  }
+
+  function popup(day,name,note,color){
+    return '<div class="popup-day" style="color:'+color+'">Day '+day+'</div><div class="popup-name">'+name+'</div><div class="popup-note">'+note+'</div>';
+  }
+
+  var P=[
+    // Day 1
+    [35.3395,25.1761,1,"Heraklion Airport","Arrival & departure point"],
+    [35.3299,25.1106,1,"JUMBO Heraklion","Beach supplies. Open Mon–Sat 9–21."],
+    [35.5172,24.0176,1,"Chania — Venetian Harbor","Evening stroll, Old Town lanes"],
+    [35.5165,24.0164,1,"Tamam ⭐","Your #1 — Persian-Greek fusion. Book ahead!"],
+    // Day 2
+    [35.5518,24.1934,2,"Seitan Limania","Dramatic cove — steep hike. Go by 9 AM."],
+    [35.5111,24.0174,2,"Kapari (lunch)","Classic taverna, daily specials. Walk-in OK."],
+    [35.5184,24.0186,2,"Pallas (sunset)","Rooftop views over the harbor"],
+    [35.518,24.028,2,"Thalassino Ageri (dinner)","Waterfront seafood — one of Crete's best. Book ahead!"],
+    // Day 3
+    [35.298,25.1628,3,"Knossos Palace","Book timed entry online! €20. 1.5–2 hrs."],
+    [35.339,25.1371,3,"Archaeological Museum","Original Minoan frescoes. Combo ticket."],
+    [35.5158,24.0266,3,"Fourogatos (dinner)","Welcome dinner for your friend. Book ahead!"],
+    // Day 4
+    [35.2712,23.5413,4,"Elafonisi Beach","Pink sand lagoon — arrive before 9 AM!"],
+    [35.2686,23.5631,4,"Kedrodasos Beach","Wild beach, juniper trees, great snorkeling"],
+    [35.5154,24.0206,4,"Astrea Garden (dinner)","Creative small plates, romantic garden. Book ahead!"],
+    // Day 5
+    [35.5793,23.5887,5,"Balos Beach","Iconic lagoon — drive+hike or boat from Kissamos"],
+    [35.4920,23.5807,5,"Falasarna Beach","Golden sand, famous sunset. Thymari Tavern nearby for lunch."],
+    [35.5182,24.0184,5,"Canale (dinner)","Upscale harbor-front, cocktails, DJ vibes"],
+    // Day 6
+    [35.5137,24.0059,6,"Nea Chora Beach","Local city beach, morning swim"],
+    [35.3304,24.2762,6,"Lake Kournas","Crete's only freshwater lake — pedal boats, turtles"],
+    [35.333,24.278,6,"Visalo Ceramics & Cafe","Handmade pottery + coffee. Near Kournas."],
+    [35.372,24.4711,6,"Fortezza, Rethymno","Venetian fortress. €5. Stunning at sunset."],
+    [35.369,24.4735,6,"Avli (dinner)","Upscale Cretan in Venetian courtyard. Book ahead!"],
+    // Day 7
+    [35.1994,24.4586,7,"Kourtaliotiko Gorge","Towering canyon, griffon vultures, waterfalls"],
+    [35.1526,24.4739,7,"Preveli Beach","Palm river meets Libyan Sea. 30-min steep hike."],
+    [35.168,24.462,7,"Kato Moni Preveli","Lower monastery, sea views, WWII history"],
+    [35.1854,24.3993,7,"Plakias Beach","Laid-back south coast. Optional late swim."],
+    [35.374,24.472,7,"Prima Plora (dinner)","Organic restaurant & wine bar on the water. Book ahead!"],
+    // Day 8
+    [35.108,24.535,8,"Triopetra Beach","Three rock formations, turquoise water, barely any tourists"],
+    [35.115,24.570,8,"Agios Pavlos Sandhills","Surreal sand dunes tumbling to the Libyan Sea"],
+    [35.371,24.473,8,"The Olive, Wine & Cook House","Creative Cretan-Mediterranean, Old Town"],
+    // Day 9
+    [35.3099,24.629,9,"Arkadi Monastery","Historic monastery, 1866 rebellion. €4. ~1 hour."],
+    [35.3386,24.6868,9,"Margarites Village","Traditional pottery workshops"],
+    [35.3735,24.398,9,"Episkopi Beach","Long golden sand, shallow water, mountain backdrop"],
+    [35.371,24.476,9,"Sella Vineria (dinner)","Wine-focused, creative plates. Farewell dinner."]
+  ];
+
+  P.forEach(function(p){
+    var c=colors[p[2]-1];
+    L.marker([p[0],p[1]],{icon:pin(c)}).bindPopup(popup(p[2],p[3],p[4],c),{maxWidth:220}).addTo(map);
+  });
+
+  var bounds=L.latLngBounds(P.map(function(p){return[p[0],p[1]];}));
+  map.fitBounds(bounds,{padding:[30,30]});
+})();
+</script>
+</body>
+</html>
